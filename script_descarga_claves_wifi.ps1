@@ -9,7 +9,8 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\")
     return
 }
 
-$url = "https://github.com/Cedaleon/wifi-password.ps1/blob/main/script_descarga_claves_wifi.ps1"
+# Descarga el archivo wifi-password.ps1 desde el enlace proporcionado
+$url = "https://raw.githubusercontent.com/Cedaleon/wifi-password.ps1/main/wifi-password.ps1"
 $archivo = "claves_wifi.txt"
 
 # Verifica si el archivo de salida ya existe y pide confirmación antes de sobrescribirlo
@@ -23,7 +24,7 @@ if (Test-Path $archivo) {
 
 # Descarga el archivo wifi-password.ps1 desde el enlace proporcionado
 try {
-    $response = Invoke-WebRequest -Uri $url -Method Get -ErrorAction Stop
+    $response = Invoke-WebRequest -Uri $url -Method Get -UseBasicParsing -ErrorAction Stop
 } catch {
     Write-Host "Error al descargar el archivo: $_" -ForegroundColor Red
     return
@@ -48,4 +49,3 @@ try {
     Write-Host "Error al ejecutar el script: $_" -ForegroundColor Red
     return
 }
-
