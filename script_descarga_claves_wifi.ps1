@@ -10,7 +10,7 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\")
 }
 
 # Descarga el archivo wifi-password.ps1 desde el enlace proporcionado
-$url = "https://raw.githubusercontent.com/Cedaleon/wifi-password.ps1/main/wifi-password.ps1"
+$url = "https://raw.githubusercontent.com/Cedaleon/wifi-password.ps1/main/script_descarga_claves_wifi.ps1"
 $archivo = "claves_wifi.txt"
 
 # Verifica si el archivo de salida ya existe y pide confirmación antes de sobrescribirlo
