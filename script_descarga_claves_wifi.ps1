@@ -1,3 +1,10 @@
+# Verifica si el equipo está conectado a una red Wi-Fi
+$connected = netsh wlan show interfaces | Select-String "Conectado"
+if ($connected -eq $null) {
+    Write-Host "El equipo no está conectado a una red Wi-Fi." -ForegroundColor Red
+    return
+}
+
 # Verifica la versión de PowerShell y que se está ejecutando en un equipo con Windows
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Este script requiere PowerShell 3.0 o posterior." -ForegroundColor Red
@@ -6,13 +13,6 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
 
 if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion")) {
     Write-Host "Este script solo se puede ejecutar en un equipo con Windows." -ForegroundColor Red
-    return
-}
-
-# Verificar si el equipo está conectado a una red Wi-Fi
-$wifi_adapter = Get-NetAdapter | Where-Object { $_.MediaType -eq 'WiFi' -and $_.Status -eq 'Up' } | Select-Object -First 1
-if ($wifi_adapter -eq $null) {
-    Write-Host "El equipo no está conectado a una red Wi-Fi." -ForegroundColor Yellow
     return
 }
 
