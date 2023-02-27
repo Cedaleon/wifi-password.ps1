@@ -9,6 +9,13 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
     return
 }
 
+# Verificar si el equipo está conectado a una red Wi-Fi
+$wifi_adapter = Get-NetAdapter | Where-Object { $_.MediaType -eq 'WiFi' -and $_.Status -eq 'Up' } | Select-Object -First 1
+if ($wifi_adapter -eq $null) {
+    Write-Host "El equipo no está conectado a una red Wi-Fi." -ForegroundColor Yellow
+    return
+}
+
 # Carpeta donde se encuentra el script
 $scriptFolder = Split-Path -Path $MyInvocation.MyCommand.Path
 
@@ -18,27 +25,22 @@ $nombre_archivo = "pass_wifi.txt"
 # Ruta completa del archivo de salida
 $ruta_archivo = Join-Path -Path $scriptFolder -ChildPath $nombre_archivo
 
-# Obtener el nombre de la red a la que está conectado el equipo
-$networkName = (netsh wlan show interfaces | Select-String "Nombre de perfil" | ForEach-Object { $_.ToString().Split(":")[1].Trim() })
+# Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
+$contrasenas_wifi = netsh wlan show profile | Select-String "\bTodos los usuarios\b|\bUsuario actual\b" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
 
-# Verificar si el equipo está conectado a una red Wi-Fi
-if (-not $networkName) {
-    Write-Host "El equipo no está conectado a una red Wi-Fi." -ForegroundColor Yellow
-    return
+# Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
+if (Test-Path -Path $ruta_archivo) {
+    $confirm = Read-Host "El archivo $nombre_archivo ya existe en la carpeta $scriptFolder. ¿Desea sobrescribirlo? (S/N)"
+    if ($confirm -ne 'S') {
+        Write-Host "Operación cancelada." -ForegroundColor Yellow
+        return
+    }
 }
 
-# Ejecutar el comando netsh para obtener la contraseña de la red actual y guardarla en una variable
-$contrasena_wifi = netsh wlan show profile name=$networkName key=clear | Select-String "Contenido de la clave" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
-
-# Verificar si se encontró la contraseña de la red actual y escribirla en el archivo de salida
-if (-not $contrasena_wifi) {
-    Write-Host "No se pudo encontrar la contraseña de la red Wi-Fi actual." -ForegroundColor Yellow
-    return
-} else {
-    try {
-        Set-Content -Path $ruta_archivo -Value $contrasena_wifi
-        Write-Host "Contraseña guardada exitosamente en $ruta_archivo"
-    } catch {
-        Write-Host "Error al escribir en el archivo: $_.Exception.Message"
-    }
+# Escribir las contraseñas en el archivo de salida
+try {
+    Set-Content -Path $ruta_archivo -Value $contrasenas_wifi
+    Write-Host "Contraseñas guardadas exitosamente en $ruta_archivo"
+} catch {
+    Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
