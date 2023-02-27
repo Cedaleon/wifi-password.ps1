@@ -25,8 +25,9 @@ $nombre_archivo = "pass_wifi.txt"
 # Ruta completa del archivo de salida
 $ruta_archivo = Join-Path -Path $scriptFolder -ChildPath $nombre_archivo
 
-# Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
-$contrasenas_wifi = netsh wlan show profile | Select-String "\bTodos los usuarios\b|\bUsuario actual\b" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
+# Ejecutar el comando netsh para obtener la información de la red Wi-Fi actual
+$interface = netsh wlan show interfaces | Select-String "Nombre de perfil" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
+$profile = netsh wlan show profile name=$interface keyMaterial=clear | Select-String "Contenido de la clave" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $ruta_archivo) {
@@ -37,10 +38,10 @@ if (Test-Path -Path $ruta_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
+# Escribir la información de la red Wi-Fi actual en el archivo de salida
 try {
-    Set-Content -Path $ruta_archivo -Value $contrasenas_wifi
-    Write-Host "Contraseñas guardadas exitosamente en $ruta_archivo"
+    Set-Content -Path $ruta_archivo -Value $profile
+    Write-Host "Contraseña de la red Wi-Fi actual guardada exitosamente en $ruta_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
