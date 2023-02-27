@@ -25,8 +25,11 @@ $nombre_archivo = "pass_wifi.txt"
 # Ruta completa del archivo de salida
 $ruta_archivo = Join-Path -Path $scriptFolder -ChildPath $nombre_archivo
 
-# Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
-$contrasenas_wifi = netsh wlan show profile | Select-String "\bTodos los usuarios\b|\bUsuario actual\b" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
+# Obtener el nombre del perfil de la red Wi-Fi conectada
+$perfil = (netsh wlan show interfaces | Select-String "Perfil de todos los usuarios" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }).ToString()
+
+# Obtener la contraseña del perfil de la red Wi-Fi conectada
+$contrasena = (netsh wlan show profile name=$perfil key=clear | Select-String "Contenido de la clave" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }).ToString()
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $ruta_archivo) {
@@ -37,10 +40,10 @@ if (Test-Path -Path $ruta_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
+# Escribir la contraseña en el archivo de salida
 try {
-    Set-Content -Path $ruta_archivo -Value $contrasenas_wifi -ErrorAction Stop
-    Write-Host "Contraseñas guardadas exitosamente en $ruta_archivo"
+    Set-Content -Path $ruta_archivo -Value $contrasena
+    Write-Host "Contraseña guardada exitosamente en $ruta_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
