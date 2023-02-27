@@ -1,4 +1,4 @@
-$url = "https://raw.githubusercontent.com/Cedaleon/wifi-password.ps1/main/wifi-password.ps1"
+$url = "https://github.com/Cedaleon/wifi-password.ps1/blob/main/script_descarga_claves_wifi.ps1"
 $archivo = "claves_wifi.txt"
 
 $response = Invoke-WebRequest -Uri $url -Method Get -ErrorAction Stop
