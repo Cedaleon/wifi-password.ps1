@@ -19,30 +19,28 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
 # Carpeta donde se encuentra el script
 $scriptFolder = Split-Path -Path $MyInvocation.MyCommand.Path
 
-# Cambiar el nombre del archivo de salida aquí:
-$nombre_archivo = "pass_wifi.txt"
-
-# Ruta completa del archivo de salida
-$ruta_archivo = Join-Path -Path $scriptFolder -ChildPath $nombre_archivo
-
 # Obtener el nombre del perfil de la red Wi-Fi conectada
 $perfil = (netsh wlan show interfaces | Select-String "Perfil de todos los usuarios" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }).ToString()
 
 # Obtener la contraseña del perfil de la red Wi-Fi conectada
 $contrasena = (netsh wlan show profile name=$perfil key=clear | Select-String "Contenido de la clave" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }).ToString()
 
+# Solicitar el nombre de la red al usuario
+$nombre_red = Read-Host "Ingrese el nombre de la red Wi-Fi"
+
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
+$ruta_archivo = Join-Path -Path $scriptFolder -ChildPath "pass_wifi.txt"
 if (Test-Path -Path $ruta_archivo) {
-    $confirm = Read-Host "El archivo $nombre_archivo ya existe en la carpeta $scriptFolder. ¿Desea sobrescribirlo? (S/N)"
+    $confirm = Read-Host "El archivo pass_wifi.txt ya existe en la carpeta $scriptFolder. ¿Desea sobrescribirlo? (S/N)"
     if ($confirm -ne 'S') {
         Write-Host "Operación cancelada." -ForegroundColor Yellow
         return
     }
 }
 
-# Escribir la contraseña en el archivo de salida
+# Escribir el nombre de la red y la contraseña en el archivo de salida
 try {
-    Set-Content -Path $ruta_archivo -Value $contrasena
+    Set-Content -Path $ruta_archivo -Value "$nombre_red:`n$contrasena"
     Write-Host "Contraseña guardada exitosamente en $ruta_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
