@@ -22,6 +22,9 @@ $contrasenas_wifi = foreach ($red in $redes_wifi) {
     }
 }
 
+# Ordenar las contraseñas alfabéticamente por nombre de red
+$contrasenas_wifi = $contrasenas_wifi | Sort-Object
+
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
     $confirm = Read-Host "El archivo $nombre_archivo ya existe. ¿Desea sobrescribirlo? (S/N)"
@@ -33,7 +36,7 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
+# Escribir las contraseñas ordenadas en el archivo de salida
 try {
     $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
     Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
