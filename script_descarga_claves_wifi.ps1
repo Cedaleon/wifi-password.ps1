@@ -44,3 +44,12 @@ if ($archivo) {
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
 }
 
+# Agregar la recomendación de encriptar el archivo con DPAPI para mayor seguridad
+$fullpath = Join-Path -Path $PWD.Path -ChildPath $nombre_archivo
+$protegido = $fullpath+".protected"
+$secure = ConvertTo-SecureString -String $nombre_archivo -Force -AsPlainText
+$secure | Export-Clixml -Path $protegido
+Write-Host "El archivo $nombre_archivo se ha encriptado con DPAPI para mayor seguridad."
+
+# Agregar la recomendación de borrar la variable $contrasenas_wifi después de usarla
+Remove-Variable -Name contrasenas_wifi
