@@ -12,17 +12,17 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
 # Cambiar el nombre del archivo de salida aquí:
 $nombre_archivo = "pass_wifi.txt"
 
-# Verificar que esté conectado a una red WiFi
-if ((Get-NetConnectionProfile).Name -eq "No hay ninguna conexión") {
-    Write-Host "No estás conectado a ninguna red WiFi. Conéctate a una red WiFi antes de ejecutar este script." -ForegroundColor Red
-    return
+# Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
+$perfiles_wifi = netsh wlan show profiles
+$contrasenas_wifi = foreach ($perfil in $perfiles_wifi) {
+    $nombre_perfil = $perfil -replace "Perfil de todos los usuarios\s+:\s+|Perfil de usuario\s+:\s+", ""
+    netsh wlan show profile name=$nombre_perfil key=clear | Select-String "Contenido de la clave" | %{
+        [PSCustomObject]@{
+            NombreRed = $nombre_perfil
+            Password = $_.Line.Split(":")[-1].Trim()
+        }
+    }
 }
-
-# Obtener el nombre de la red WiFi actual
-$nombre_red = (Get-NetConnectionProfile).Name
-
-# Ejecutar el comando netsh para obtener la contraseña de la red WiFi actual y guardarla en una variable
-$contrasena_wifi = netsh wlan show profile name=$nombre_red key=clear | Select-String "Contenido de la clave"
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
@@ -35,10 +35,10 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir la contraseña en el archivo de salida
+# Escribir las contraseñas en el archivo de salida
 try {
-    $contrasena_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    Write-Host "Contraseña de la red WiFi guardada exitosamente en $nombre_archivo"
+    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
+    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
@@ -52,4 +52,3 @@ if ($archivo) {
     Set-Acl $nombre_archivo $acl
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
 }
-
