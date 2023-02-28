@@ -42,3 +42,4 @@ try {
 } catch {
     Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
 }
+
