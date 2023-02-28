@@ -26,7 +26,7 @@ $contrasenas_wifi = foreach ($red in $redes_wifi) {
 }
 
 # Ordenar las contraseñas alfabéticamente por nombre de red
-$contrasenas_wifi = $contrasenas_wifi | Sort-Object NombreDeRed
+$contrasenas_wifi = $contrasenas_wifi | Sort-Object "Nombre de red"
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
