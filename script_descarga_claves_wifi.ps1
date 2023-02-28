@@ -38,7 +38,7 @@ try {
     $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
     Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
 } catch {
-    Write-Host "Error al escribir en el archivo: $_.Exception.Message"
+    Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
 }
 
 # Agregar la recomendación de cambiar los permisos del archivo para evitar acceso no autorizado
