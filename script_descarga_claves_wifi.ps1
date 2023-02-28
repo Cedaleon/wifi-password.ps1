@@ -13,7 +13,7 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
 $nombre_archivo = "pass_wifi.txt"
 
 # Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
-$contrasenas_wifi = netsh wlan show profile | Select-String "\bTodos los usuarios\b|\bUsuario actual\b" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
+$contrasenas_wifi = netsh wlan show profile | Select-String "Todos los usuarios|Usuario actual" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
@@ -28,11 +28,7 @@ if (Test-Path -Path $nombre_archivo) {
 
 # Escribir las contraseñas en el archivo de salida
 try {
-    foreach ($perfil in $contrasenas_wifi) {
-        $nombre_red = $perfil | Select-String "\bNombre de perfil\b" | %{($_.ToString() -split ":")[1].Trim()}
-        $clave = $perfil | Select-String "\bContenido de la clave\b" | %{($_.ToString() -split ":")[1].Trim()}
-        "$nombre_red: $clave" | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    }
+    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
     Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
@@ -46,4 +42,13 @@ if ($archivo) {
     $acl.SetAccessRule($ar)
     Set-Acl $nombre_archivo $acl
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
+}
+
+# Agregar la extracción del nombre de la red junto con la clave
+$contrasenas_wifi | ForEach-Object {
+    $nombre_red = Select-String -InputObject $_ -Pattern "Nombre de perfil[^:]*:\s+([\w-]+)" | ForEach-Object { $_.Matches.Groups[1].Value }
+    $clave = Select-String -InputObject $_ -Pattern "Contenido de la clave\s+:\s+(.+)$" | ForEach-Object { $_.Matches.Groups[1].Value }
+    if ($nombre_red -and $clave) {
+        "$nombre_red`: $clave" | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
+    }
 }
