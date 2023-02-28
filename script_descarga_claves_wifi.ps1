@@ -12,8 +12,17 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
 # Cambiar el nombre del archivo de salida aquí:
 $nombre_archivo = "pass_wifi.txt"
 
-# Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
-$contrasenas_wifi = netsh wlan show profile | Select-String "\bTodos los usuarios\b|\bUsuario actual\b" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
+# Verificar que esté conectado a una red WiFi
+if ((Get-NetConnectionProfile).Name -eq "No hay ninguna conexión") {
+    Write-Host "No estás conectado a ninguna red WiFi. Conéctate a una red WiFi antes de ejecutar este script." -ForegroundColor Red
+    return
+}
+
+# Obtener el nombre de la red WiFi actual
+$nombre_red = (Get-NetConnectionProfile).Name
+
+# Ejecutar el comando netsh para obtener la contraseña de la red WiFi actual y guardarla en una variable
+$contrasena_wifi = netsh wlan show profile name=$nombre_red key=clear | Select-String "Contenido de la clave"
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
@@ -26,10 +35,10 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
+# Escribir la contraseña en el archivo de salida
 try {
-    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
+    $contrasena_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
+    Write-Host "Contraseña de la red WiFi guardada exitosamente en $nombre_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
@@ -44,12 +53,3 @@ if ($archivo) {
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
 }
 
-# Agregar la recomendación de encriptar el archivo con DPAPI para mayor seguridad
-$fullpath = Join-Path -Path $PWD.Path -ChildPath $nombre_archivo
-$protegido = $fullpath+".protected"
-$secure = ConvertTo-SecureString -String $nombre_archivo -Force -AsPlainText
-$secure | Export-Clixml -Path $protegido
-Write-Host "El archivo $nombre_archivo se ha encriptado con DPAPI para mayor seguridad."
-
-# Agregar la recomendación de borrar la variable $contrasenas_wifi después de usarla
-Remove-Variable -Name contrasenas_wifi
