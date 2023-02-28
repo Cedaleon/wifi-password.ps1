@@ -1,3 +1,4 @@
+# Verifica la versión de PowerShell y que se está ejecutando en un equipo con Windows
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Este script requiere PowerShell 3.0 o posterior." -ForegroundColor Red
     return
@@ -15,9 +16,9 @@ $nombre_archivo = "pass_wifi.txt"
 $redes_wifi = netsh wlan show profile
 $contrasenas_wifi = foreach ($red in $redes_wifi) {
     $nombre_red = $red -replace ".*:\s*(.*)", '$1'
-    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear | Select-String -Pattern "Contenido de la clave\s+:\s+(.*)$" | ForEach-Object { $_.Matches.Groups[1].Value }).Trim()
-    if ($contrasena_red -ne $null) {
-        "${nombre_red}: `t$contrasena_red"
+    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
+    if ($contrasena_red) {
+        "${nombre_red} - ${contrasena_red}"
     }
 }
 
@@ -43,3 +44,12 @@ try {
     Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
 }
 
+# Agregar la recomendación de cambiar los permisos del archivo para evitar acceso no autorizado
+$archivo = Get-Item $nombre_archivo
+if ($archivo) {
+    $acl = Get-Acl $nombre_archivo
+    $ar = New-Object System.Security.AccessControl.FileSystemAccessRule("Usuarios","ReadAndExecute","Allow")
+    $acl.SetAccessRule($ar)
+    Set-Acl $nombre_archivo $acl
+    Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
+}
