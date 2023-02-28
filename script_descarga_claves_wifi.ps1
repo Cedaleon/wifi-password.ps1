@@ -1,49 +1,27 @@
+import subprocess
 
-if ($PSVersionTable.PSVersion.Major -lt 3) {
-    Write-Host "Este script requiere PowerShell 3.0 o posterior." -ForegroundColor Red
-    return
-}
+# Ejecuta el comando para obtener perfiles de Wi-Fi
+result = subprocess.run(["netsh", "wlan", "show", "profiles"], capture_output=True, text=True)
 
-if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion")) {
-    Write-Host "Este script solo se puede ejecutar en un equipo con Windows." -ForegroundColor Red
-    return
-}
+# Obtener nombres de perfil de Wi-Fi
+profiles = [i.split(":")[1][1:-1] for i in result.stdout.splitlines() if "Todos los perfiles de usuario" not in i]
 
-$nombre_archivo = "pass_wifi.txt"
+# Crear archivo txt para escribir resultados
+with open("wifi-passwords.txt", "w") as file:
+    for profile in profiles:
+        # Obtener información de la red Wi-Fi
+        profile_info = subprocess.run(["netsh", "wlan", "show", "profile", profile, "key=clear"], capture_output=True, text=True)
+        # Obtener nombre de la red Wi-Fi
+        name = [line.split(":")[1][1:-1] for line in profile_info.stdout.splitlines() if "Nombre             :" in line][0]
+        # Obtener contraseña de la red Wi-Fi
+        try:
+            key = [line.split(":")[1][1:-1] for line in profile_info.stdout.splitlines() if "Contenido de la clave" in line][0]
+        except IndexError:
+            key = "No se pudo encontrar la contraseña"
+        
+        # Escribir nombre y contraseña de la red Wi-Fi en el archivo txt
+        file.write(f"Red Wi-Fi: {name}\nContraseña: {key}\n\n")
 
-$redes_wifi = netsh wlan show profile
-$contrasenas_wifi = foreach ($red in $redes_wifi) {
-    $nombre_red = $red -replace ".*:\s*(.*)", '$1'
-    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
-    if ($contrasena_red) {
-        "${nombre_red}: ${contrasena_red}"
-    }
-}
+# Imprimir mensaje de éxito
+print("Se han guardado las contraseñas de las redes Wi-Fi en el archivo wifi-passwords.txt")
 
-$contrasenas_wifi = $contrasenas_wifi | Sort-Object {$_.Split(":")[0]}
-
-if (Test-Path -Path $nombre_archivo) {
-    $confirm = Read-Host "El archivo $nombre_archivo ya existe. ¿Desea sobrescribirlo? (S/N)"
-    if ($confirm -ne 'S') {
-        Write-Host "Operación cancelada." -ForegroundColor Yellow
-        return
-    } else {
-        Remove-Item -Path $nombre_archivo -ErrorAction SilentlyContinue
-    }
-}
-
-try {
-    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
-} catch {
-    Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-$archivo = Get-Item $nombre_archivo
-if ($archivo) {
-    $acl = Get-Acl $nombre_archivo
-    $ar = New-Object System.Security.AccessControl.FileSystemAccessRule("Usuarios","ReadAndExecute","Allow")
-    $acl.SetAccessRule($ar)
-    Set-Acl $nombre_archivo $acl
-    Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
-}
