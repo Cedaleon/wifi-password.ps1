@@ -26,10 +26,14 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
+# Escribir las contraseñas en el archivo de salida y mostrar el nombre de la red y la contraseña
 try {
-    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
+    foreach ($red in $contrasenas_wifi) {
+        $nombre_red = $red | Select-String "Perfil de todos los usuarios|Perfil de usuario actual" | %{ $_.Matches[0].Value }
+        $clave = $red | Select-String "Contenido de la clave" | %{ $_.ToString().Split(":")[1].Trim() }
+        "$nombre_red: $clave" | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
+        Write-Host "La clave de la red '$nombre_red' se ha guardado en $nombre_archivo"
+    }
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
@@ -44,11 +48,3 @@ if ($archivo) {
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
 }
 
-# Agregar la extracción del nombre de la red junto con la clave
-$contrasenas_wifi | ForEach-Object {
-    $nombre_red = Select-String -InputObject $_ -Pattern "Nombre de perfil[^:]*:\s+([\w-]+)" | ForEach-Object { $_.Matches.Groups[1].Value }
-    $clave = Select-String -InputObject $_ -Pattern "Contenido de la clave\s+:\s+(.+)$" | ForEach-Object { $_.Matches.Groups[1].Value }
-    if ($nombre_red -and $clave) {
-        "$nombre_red`: $clave" | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    }
-}
