@@ -16,7 +16,7 @@ $redes_wifi = netsh wlan show profile
 $contrasenas_wifi = foreach ($red in $redes_wifi) {
     $nombre_red = $red -replace ".*:\s*(.*)", '$1'
     $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear | Select-String -Pattern "Contenido de la clave\s+:\s+(.*)$" | ForEach-Object { $_.Matches.Groups[1].Value }).Trim()
-    if ($contrasena_red) {
+    if ($contrasena_red -ne $null) {
         "${nombre_red}: `t$contrasena_red"
     }
 }
@@ -42,5 +42,3 @@ try {
 } catch {
     Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
 }
-
-#
