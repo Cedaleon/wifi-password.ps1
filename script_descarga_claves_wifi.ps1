@@ -13,7 +13,14 @@ if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
 $nombre_archivo = "pass_wifi.txt"
 
 # Ejecutar el comando netsh para obtener las contraseñas y guardarlas en una variable
-$contrasenas_wifi = netsh wlan show profile | Select-String "Todos los usuarios|Usuario actual" | %{(netsh wlan show profile name=$_.matches[0].value key=clear)}
+$redes_wifi = netsh wlan show profile
+$contrasenas_wifi = foreach ($red in $redes_wifi) {
+    $nombre_red = $red -replace ".*:\s*(.*)", '$1'
+    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
+    if ($contrasena_red) {
+        "$nombre_red: $contrasena_red"
+    }
+}
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
@@ -26,14 +33,10 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida y mostrar el nombre de la red y la contraseña
+# Escribir las contraseñas en el archivo de salida
 try {
-    foreach ($red in $contrasenas_wifi) {
-        $nombre_red = $red | Select-String "Perfil de todos los usuarios|Perfil de usuario actual" | %{ $_.Matches[0].Value }
-        $clave = $red | Select-String "Contenido de la clave" | %{ $_.ToString().Split(":")[1].Trim() }
-        "$nombre_red: $clave" | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-        Write-Host "La clave de la red '$nombre_red' se ha guardado en $nombre_archivo"
-    }
+    $contrasenas_wifi | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
+    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
 } catch {
     Write-Host "Error al escribir en el archivo: $_.Exception.Message"
 }
@@ -47,4 +50,3 @@ if ($archivo) {
     Set-Acl $nombre_archivo $acl
     Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
 }
-
