@@ -18,15 +18,19 @@ $contrasenas_wifi = foreach ($red in $redes_wifi) {
     $nombre_red = $red -replace ".*:\s*(.*)", '$1'
     $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
     if ($contrasena_red) {
-        [pscustomobject]@{
-            "Nombre de Red" = $nombre_red
-            "Contraseña" = $contrasena_red
-        }
+        "${nombre_red}: ${contrasena_red}"
     }
 }
 
-# Ordenar la lista de contraseñas por el nombre de red
-$contrasenas_wifi = $contrasenas_wifi | Sort-Object "Nombre de Red"
+# Obtener el nombre de la red a la que se está conectado actualmente
+$red_actual = (netsh wlan show interfaces) -match "Nombre de SSID" | Out-String
+$red_actual = $red_actual -replace ".*:\s*(.*)", '$1'
+
+# Agregar la contraseña de la red actual a la lista de contraseñas
+$contrasenas_wifi += "Red actual: " + (netsh wlan show profile name="$red_actual" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
+
+# Ordenar la lista de contraseñas alfabéticamente
+$contrasenas_wifi = $contrasenas_wifi | Sort-Object
 
 # Verificar si el archivo de salida ya existe y pedir confirmación antes de sobrescribirlo
 if (Test-Path -Path $nombre_archivo) {
@@ -39,20 +43,4 @@ if (Test-Path -Path $nombre_archivo) {
     }
 }
 
-# Escribir las contraseñas en el archivo de salida
-try {
-    $contrasenas_wifi | Format-Table -AutoSize | Out-File -FilePath $nombre_archivo -Encoding utf8 -Append
-    Write-Host "Contraseñas guardadas exitosamente en $nombre_archivo"
-} catch {
-    Write-Host "Error al escribir en el archivo: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-# Agregar la recomendación de cambiar los permisos del archivo para evitar acceso no autorizado
-$archivo = Get-Item $nombre_archivo
-if ($archivo) {
-    $acl = Get-Acl $nombre_archivo
-    $ar = New-Object System.Security.AccessControl.FileSystemAccessRule("Usuarios","ReadAndExecute","Allow")
-    $acl.SetAccessRule($ar)
-    Set-Acl $nombre_archivo $acl
-    Write-Host "Se han actualizado los permisos de $nombre_archivo para evitar acceso no autorizado."
-}
+# Escri
