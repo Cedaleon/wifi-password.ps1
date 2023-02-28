@@ -16,9 +16,9 @@ $nombre_archivo = "pass_wifi.txt"
 $redes_wifi = netsh wlan show profile
 $contrasenas_wifi = foreach ($red in $redes_wifi) {
     $nombre_red = $red -replace ".*:\s*(.*)", '$1'
-    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace '(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*', '$1'
+    $contrasena_red = (netsh wlan show profile name="$nombre_red" key=clear) -replace "(?ms).*Clave de seguridad.*:\s*(.*)\s*\n.*", '$1'
     if ($contrasena_red) {
-        "$nombre_red: $contrasena_red"
+        "${nombre_red}: ${contrasena_red}"
     }
 }
 
